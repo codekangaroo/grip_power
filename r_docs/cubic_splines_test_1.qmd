@@ -1,0 +1,95 @@
+---
+title: "Cubic Spline Test 1"
+author: "Petri Haavisto"
+format: html
+editor: visual
+---
+
+## Testing Cubic Splines
+
+Load libraries:
+
+```{r}
+library(conflicted) 
+library(tidyverse)
+library(splines)
+library(effects)
+#library(help = "splines")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+```
+
+### Test 1
+
+Example from bs{splines} documentation
+
+```{r}
+# Using bs {splines}
+view(women)
+bs(women$height, df = 5)
+summary(fm1 <- lm(weight ~ bs(height, df = 5), data = women))
+
+## example of safe prediction
+plot(women, xlab = "Height (in)", ylab = "Weight (lb)")
+#57 is min-1 and 73 is max + 1
+ht <- seq(57, 73, length.out = 200)
+lines(ht, predict(fm1, data.frame(height = ht)))
+```
+
+### Test 2
+
+Next example from stackoverflow
+
+<https://stackoverflow.com/questions/15837763/b-spline-confusion?rq=2>
+
+```{r}
+# simulate some data - We generate 400 x values and 400 y values
+set.seed(1)
+n <- 400
+x <- 0:(n-1)/(n-1)
+f <- 0.2*x^11*(10*(1-x))^6+10*(10*x)^3*(1-x)^10
+y <- f + rnorm(n, 0, sd = 2)
+allData <- cbind(x, y)
+#class(allData)
+#oma <- as_tibble(allData, rownames = 'variable') %>%
+#     unnest(-variable)
+#class(oma)
+#str(oma)
+```
+
+Let's plot the original x and y values
+
+```{r}
+
+```
+
+Let's generate new x values and generate new predictions from the model for new values.
+
+```{r}
+pdat <- data.frame(x = seq(min(x), max(x), length = 100))
+#view(pdat)
+## predict for new `x`
+pdat <- transform(pdat, yhat = predict(mod, newdata = pdat))
+view(pdat)
+## now plot
+ylim <- range(pdat$y, y)
+plot(y ~ x)
+lines(yhat ~ x, data = pdat, lwd = 2, col = "red")
+```
+
+Next we use bs() function in lm.
+
+```{r}
+mod <- lm(y ~ bs(x, knots = seq(0.1, 0.9, by = 0.1)))
+summary(mod)
+```
+
+ANOVA
+
+```{r}
+anova(mod)
+```
+
+```{r}
+plot(allEffects(mod))
+```

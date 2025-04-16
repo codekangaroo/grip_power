@@ -1,0 +1,107 @@
+---
+title: "Scatterplot Example 1"
+author: "Petri Haavisto"
+format: html
+editor: visual
+---
+
+## Scatter plot Example 1
+
+Hot to use ggplot to create beautiful scatter plots.
+
+Load libraries:
+
+```{r}
+library(conflicted)  
+library(tidyverse)
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+```
+
+Let's have look, what data sets **R** has ready for us and this time we are interested of mpg (miles per gallon):
+
+```{r}
+data() #gives you list of R data sets
+?mpg
+names(mpg)
+```
+
+Let's try to plot this miles per gallon data. Grammar of graphics: data set, aesthetics, geometry
+
+```{r}
+mpg |> 
+  filter(hwy < 35) |> #manipulate data befor ggplot
+  ggplot(aes(x = displ, #engine displacement
+             y = hwy, #highway miles per gallon
+             color = drv)) +   #color coding based on variable drv
+  geom_point()+
+  #smooth lines (inherits color from drv)
+  geom_smooth(formula = y ~ x, method = lm, se = F)+ 
+  labs(x = "Engine size",
+       y = "MPG on the Highway",
+       title = "Fuel effiency")+
+  theme_minimal()
+  #ggsave("MPH_hwy.jpg")
+```
+
+Let's plot this again but this time line is not "lm" and we also let "se" (standard error to the plot):
+
+```{r}
+mpg |> 
+  filter(hwy < 35) |> 
+  ggplot(aes(x = displ,
+             y = hwy)) +   
+  geom_point(aes(color = drv))+
+  geom_smooth()+ 
+  labs(x = "Engine size",
+       y = "MPG on the Highway",
+       title = "Fuel effiency")+
+  theme_minimal()
+  #ggsave("MPH_hwy.jpg")
+```
+
+## Test 2 msleep
+
+Let's have look at sleep data
+
+```{r}
+data() #gives you list of R data sets
+?msleep
+view(msleep)
+```
+
+Let's try to scatter plot this data: VERSION 1
+
+```{r}
+msleep |> 
+  filter(bodywt < 2, !is.na(brainwt)) |> 
+  ggplot(aes(bodywt, brainwt))+ #these are x and y
+  geom_point(aes(color = sleep_total, size = awake))+
+  geom_smooth(formula = y ~ x, method = loess)+
+  labs(x = "Body Weight", y = "Brain Weight", title = "Brain and body weight")+
+  theme_minimal()
+```
+
+VERSION 2 (stripped)
+
+```{r}
+msleep |> 
+  filter(bodywt < 2, !is.na(brainwt)) |> 
+  ggplot(aes(bodywt, brainwt))+ #these are x and y
+  geom_point()+
+  geom_smooth(formula = y ~ x, method = loess)+
+  labs(x = "Body Weight", y = "Brain Weight", title = "Brain and body weight")+
+  theme_minimal()
+```
+
+VERSION 3
+
+```{r}
+msleep |> 
+  filter(bodywt < 2, !is.na(brainwt)) |> 
+  ggplot(aes(bodywt, brainwt))+ #these are x and y
+  geom_point(aes(color = sleep_total, size = awake))+
+  geom_smooth(formula = y ~ x, method = lm, se = F)+
+  labs(x = "Body Weight", y = "Brain Weight", title = "Brain and body weight")+
+  theme_minimal()
+```

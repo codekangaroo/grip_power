@@ -1,0 +1,106 @@
+---
+title: "Exploring assumptions"
+author: "Petri Haavisto"
+format: html
+editor: visual
+---
+
+## How to check the assumptions... Chapter 5
+
+... Before deciding which statistical test is appropriate. If you use a parametric test when your data is not parametric, result are likely to be inaccurate.
+
+Pipe=Ctrl+Shift+M\
+Left Arrow = Alt and - (minus)
+
+1 First libraries we are going to use.
+
+```{r}
+library(conflicted)  
+library(tidyverse)
+library(car)
+library(ggplot2)
+library(pastecs)
+library(psych)
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+```
+
+2 Next we read raw_data.csv into a tibble. Tibble is a modern version of data frame.
+
+```{r}
+raw <- here::here("data/grip_test_1.csv") |> readr::read_csv()
+view(raw)
+```
+
+TEST 1 Let's load festival data as a test data:
+
+```{r}
+dlf <- read.delim(file <- here::here("data/DownloadFestival.dat"), header = TRUE)
+view(dlf)
+```
+
+TEST 2 Histogram of festival data:
+
+```{r}
+hist.dayone <- ggplot(dlf, aes(day1)) + theme(legend.position = "none") +
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white", binwidth = 0.1)+
+    labs(x = "Hygiene score on day 1", y = "Density") + 
+   stat_function(fun = dnorm, args = list(mean = mean(dlf$day1, na.rm = TRUE), sd = sd(dlf$day1, na.rm = TRUE)), colour = "black", size = 1)
+hist.dayone
+```
+
+TEST 3
+
+```{r}
+qqPlot(dlf$day2, ylab = "Your label here", id = FALSE)
+```
+
+3 Histogram of dominating hand grip values:
+
+```{r}
+hist.dgrip <- ggplot(raw, aes(MAX_HGS_Dom))+
+  geom_histogram(aes(y = ..density..), colour = "black", fill = "white", binwidth = 2)+
+    labs(x = "Strength of the dominating Hand", y = "Density") + 
+   stat_function(fun = dnorm, args = list(mean = mean(raw$MAX_HGS_Dom), sd = sd(raw$MAX_HGS_Dom)), colour = "black", size = 1)
+hist.dgrip
+```
+
+Q-Q Plot of the Strength of the dominating hand.
+
+```{r}
+qqplot.dgrip <- qqPlot(raw$MAX_HGS_Dom, ylab = "MAX_HGS_Dom", id = TRUE)
+#qqPlot(raw$Age, ylab = "Age")
+```
+
+```{r}
+fivenum(raw$MAX_HGS_Dom)
+```
+
+```{r}
+festival.test <- stat.desc(dlf[, c("day1", "day2", "day3")], basic = FALSE, norm = TRUE)
+view(festival.test)
+```
+
+```{r}
+test <- c(-11,0, 1, 2, 3, 4, 5, 6, 7)
+qqplot.dgrip <- qqPlot(test)
+test.stats <- stat.desc(test, basic = FALSE, norm = TRUE)
+view(test.stats)
+```
+
+```{r}
+dom.hand <- stat.desc(raw$MAX_HGS_Dom, basic = FALSE, norm = TRUE)
+view(dom.hand)
+age.stats <- stat.desc(raw$Age, basic = FALSE, norm = TRUE)
+view(age.stats)
+```
+
+```{r}
+qqnorm(raw$MAX_HGS_Dom, pch = 1, frame = FALSE)
+qqline(raw$MAX_HGS_Dom, col = "steelblue", lwd = 2)
+```
+
+```{r}
+qqnorm(raw$Age, pch = 1, frame = FALSE)
+qqline(raw$Age, col = "steelblue", lwd = 2)
+```

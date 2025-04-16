@@ -1,0 +1,169 @@
+---
+title: "Non-linear regression"
+author: "Petri Haavisto"
+format: html
+editor: visual
+---
+
+## Non-Linear Regression (exponential, piece-wise cubic-spline)
+
+Based on video:\
+<https://www.youtube.com/watch?v=iMZJdWuYx9M&t=110s&ab_channel=Dr.ImranArif>
+
+1 Load Libraries
+
+```{r}
+library(conflicted)  
+library(tidyverse)
+library(fpp2) #contains marathon data
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+```
+
+Series marathon contains data of winning times (in minutes) for the Boston Marathon's Men's Division 1897-2016. We are interested in forecasting winning times for the next 10 years.
+
+2 We can set that ten years to variable h and have a look at the data:
+
+```{r}
+h <- 10
+#view(marathon)
+str(marathon)
+#autoplot(marathon)
+```
+
+#### First Model: Linear
+
+We can test what happens with linear model first. Here we are completely ignoring the non-linearity of the data.
+
+**tslm** {forecast} function is used to fit linear model with time series components.
+
+```{r}
+fit.lin <- tslm(marathon ~ trend) #time series linear model
+fcasts.lin <- forecast(fit.lin, h = h)
+marathon |> 
+  autoplot() +
+  autolayer(fitted(fit.lin), series = "Linear") +
+  autolayer(fcasts.lin$mean, series = "Linear") +
+  xlab("Year") +
+  ylab("Winning times in minutes") +
+  ggtitle("Boston Marathon") +
+  guides(colour = guide_legend(title = " "))
+```
+
+#### Second Model: Exponential
+
+Fit linear model using trend as an exmplanatory variable (lambda = shows that it is a log transformed data):
+
+```{r}
+fit.exp <- tslm(marathon ~ trend, lambda = 0)
+fcasts.exp <- forecast(fit.exp, h = h)
+marathon |> 
+  autoplot() +
+  autolayer(fitted(fit.exp), series = "Exponential") +
+  autolayer(fcasts.exp$mean, series = "Exponential") +
+  xlab("Year") +
+  ylab("Winning times in minutes") +
+  ggtitle("Boston Marathon") +
+  guides(colour = guide_legend(title = " "))
+```
+
+Looks like log transformation was not enough to take care of the non-linearity here. We have to try something else.
+
+#### Third model: Piece-wise regression model
+
+First we create new variable t that is years as data points. Knot 1 is at 1940 and Knot 2 at 1980.
+
+```{r}
+t <- time(marathon)
+t.break1 <- 1940
+t.break2 <- 1980
+#t.break1 
+#t.break2
+tb1 <- ts(pmax(0, t - t.break1), start = 1897)
+tb2 <- ts(pmax(0, t - t.break2), start = 1897)
+cbind(t, tb1, tb2) # Look at the knots
+fit.pw <- tslm(marathon ~ t + tb1 + tb2)
+#Extending forecast horizon
+t.new <- t[length(t)] + seq(h)
+tb1.new <- tb1[length(tb1)] + seq(h)
+tb2.new <- tb2[length(tb2)] + seq(h)
+#Combine the data to a new data frame
+newdata <- cbind(t = t.new, tb1 = tb1.new, tb2 = tb2.new) |> 
+                   as.data.frame()
+#view(newdata)
+fcasts.pw <- forecast(fit.pw, newdata = newdata)
+marathon |> 
+  autoplot() +
+  autolayer(fitted(fit.pw), series = "Piecewise") +
+  autolayer(fcasts.pw$mean, series = "Piecewise") +
+  xlab("Year") +
+  ylab("Winning times in minutes") +
+  ggtitle("Boston Marathon") +
+  guides(colour = guide_legend(title = " "))
+```
+
+#### Fourth Model: Cubic-Spline
+
+Forecast a spline regression.
+
+```{r}
+fit.spline <- tslm(marathon ~ t + I(t^2) + I(t^3) + I(tb1^3) + I(tb2^3))
+#have a look:
+#tcbind(marathon, t, (t^2), (t^3), (tb1^3), (tb2^3))
+```
+
+Forecast the spline regression on the new data and plot.
+
+```{r}
+fcasts.spline <- forecast(fit.spline, newdata = newdata)
+#Plot:
+marathon |> 
+  autoplot() +
+  autolayer(fitted(fit.spline), series = "Cubic Spline") +
+  autolayer(fcasts.spline$mean, series = "Cubic Spline") +
+  xlab("Year") +
+  ylab("Winning times in minutes") +
+  ggtitle("Boston Marathon") +
+  guides(colour = guide_legend(title = " "))
+```
+
+#### All models plotted together
+
+Finally let's plot all models together.
+
+```{r}
+marathon |> 
+  autoplot() +
+  autolayer(fitted(fit.lin), series = "Linear") +
+  autolayer(fcasts.lin$mean, series = "Linear") +
+   autolayer(fitted(fit.exp), series = "Exponential") +
+  autolayer(fcasts.exp$mean, series = "Exponential") +
+  autolayer(fitted(fit.pw), series = "Piecewise") +
+  autolayer(fcasts.pw$mean, series = "Piecewise") +
+  autolayer(fitted(fit.spline), series = "Cubic Spline") +
+  autolayer(fcasts.spline$mean, series = "Cubic Spline") +
+  xlab("Year") +
+  ylab("Winning times in minutes") +
+  ggtitle("Boston Marathon") +
+  guides(colour = guide_legend(title = " "))
+```
+
+### Alternative Cubic Splines, "Natural Cubic smoothing splines"
+
+Spline function is linear at the end, which usually gives much better forecast without compromising the fit. In the below example we have used splinef() function to produce the cubic spline forecasts. This uses many more knots than we used above, but the coefficients are constrained to prevent over-fitting and the curve is linear at both ends. This has the added advantage that knot selection is not subjective.
+
+Next we apply Natural cubic smoothing splines to marathon data. The forecasts are a linear projection of the trend at the end of the observed data. Log transformation (lambda = 0) is to handle heteroscedasticity.
+
+```{r}
+marathon |> 
+  splinef(lambda = 0) |> 
+  autoplot()
+```
+
+Evaluate the cubic smoothing splines model
+
+```{r}
+marathon |> 
+  splinef(lambda = 0) |> 
+  checkresiduals()
+```
