@@ -67,14 +67,14 @@ Let's generate new x values and generate new predictions from the model for new 
 
 ```{r}
 pdat <- data.frame(x = seq(min(x), max(x), length = 100))
-#view(pdat)
+view(pdat)
 ## predict for new `x`
 pdat <- transform(pdat, yhat = predict(mod, newdata = pdat))
 view(pdat)
 ## now plot
-ylim <- range(pdat$y, y)
-plot(y ~ x)
-lines(yhat ~ x, data = pdat, lwd = 2, col = "red")
+#ylim <- range(pdat$y, y)
+#plot(y ~ x)
+#lines(yhat ~ x, data = pdat, lwd = 2, col = "red")
 ```
 
 Next we use bs() function in lm.

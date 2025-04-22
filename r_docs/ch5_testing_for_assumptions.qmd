@@ -21,6 +21,7 @@ library(car)
 library(ggplot2)
 library(pastecs)
 library(psych)
+library(effects)
 conflict_prefer("filter", "dplyr")
 conflict_prefer("lag", "dplyr")
 ```

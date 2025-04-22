@@ -1,0 +1,75 @@
+---
+title: "Age vs Dominant hand grip"
+format: html
+editor: visual
+---
+
+## Testing how age affect dominant hand grip
+
+1 Load libraries
+
+```{r}
+library(conflicted)  
+library(tidyverse)
+library(car)
+library(ggplot2)
+library(pastecs)
+library(psych)
+library(splines)
+library(effects)
+conflict_prefer("filter", "dplyr")
+conflict_prefer("lag", "dplyr")
+```
+
+2 Next we read raw_data.csv into a tibble. Tibble is a modern version of data frame.
+
+```{r}
+raw <- here::here("data/grip_test_1.csv") |> readr::read_csv()
+view(raw)
+spec(raw)
+```
+
+3 Let's have look how age versus MAX_HGS_Dom looks in scatter plot:
+
+```{r}
+raw |> 
+  ggplot(aes(x = Age, #Age 
+             y = MAX_HGS_Dom,)) + #Max grip strength of dominant hand
+  geom_point()+
+  geom_smooth(formula = y ~ x, method = lm, se = F)+ 
+  labs(x = "Age",
+       y = "Grip Power",
+       title = "Max strenght of Dominant hand grip")+
+  theme_minimal()
+  #ggsave("MAX_HGS_Dom_vs_age_1.jpg")
+```
+
+4 First test with linear model:
+
+```{r}
+lm_HGS <- lm(MAX_HGS_Dom~Age, data=raw)
+summary(lm_HGS)
+
+```
+
+Next test with bs{splines} function
+
+```{r}
+bs(raw$MAX_HGS_Dom, df = 5)
+spline1 <- lm(MAX_HGS_Dom ~ bs(Age, df = 5), data = raw)
+summary(spline1)
+```
+
+Plot previous
+
+```{r}
+plot(raw, xlab = "Age", ylab = "Dominant hand grip strength")
+ag <- seq(39, 77, length.out = 200)
+lines(ag, predict(spline1, data.frame(Age=ag)))
+```
+
+```{r}
+plot(raw, xlab = "Age", ylab = "Dominant hand grip strength")
+ag <- seq(39, 67, length.out = 200)
+lines(ag, predict(lm_HGS, data.frame(Age=ag)))
+```
